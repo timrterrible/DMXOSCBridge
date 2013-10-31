@@ -31,19 +31,26 @@ import processing.serial.*;
 
 DmxP512 dmxOutput;
 boolean KILLED=false;
+OscP5 oscP5;
+NetAddress myRemoteLocation;                            
+String serverIP = "127.0.0.1";
 
 int Light1=1; //Start address of fixture.
 int Light2=6; //Start address of fixture. 
 int Light3=11; //Start address of fixture. 
 int Light4=16; //Start address of fixture.
 
+int OSCPORT=12006; //OSC listening Port - Next port in sequence from maingame/assets/config.xml is 12006
 int universeSize=32; //Our universe is only 32 channels. 
 boolean DEBUG=false; //Disables DMX Interface
 String DMXPRO_PORT="COM4"; //Change this. 
 int DMXPRO_BAUDRATE=115000; //Do not change this. 
 
 void setup() { 
-  size(128, 128, JAVA2D);  
+  myRemoteLocation = new NetAddress(serverIP, 12000);
+  oscP5 = new OscP5(this,OSCPORT);
+  size(128, 128, JAVA2D);
+
   if (!DEBUG) {
     dmxOutput=new DmxP512(this, universeSize, false);
     dmxOutput.setupDmxPro(DMXPRO_PORT, DMXPRO_BAUDRATE);
@@ -107,3 +114,8 @@ void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
   dmxOutput.set(startAddr+4, strobe);
 }
 
+void oscEvent(OscMessage theOscMessage) {
+  print("### received an osc message.");
+  print(" addrpattern: "+theOscMessage.addrPattern());
+  println(" typetag: "+theOscMessage.typetag());
+}
