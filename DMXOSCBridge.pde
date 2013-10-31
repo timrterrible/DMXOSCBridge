@@ -35,8 +35,8 @@ OscP5 oscP5;
 NetAddress myRemoteLocation;                            
 String serverIP = "127.0.0.1";
 
-int Light1=1; //Start address of fixture.
-int Light2=6; //Start address of fixture. 
+int Light1=01; //Start address of fixture.
+int Light2=06; //Start address of fixture. 
 int Light3=11; //Start address of fixture. 
 int Light4=16; //Start address of fixture.
 
@@ -70,14 +70,8 @@ void draw() {
   rect(4, 4, 120, 120, 8, 8, 8, 8); //Giant traffic light showing DMX output state.  
 
   if (!DEBUG) {
-    if (!KILLED) {
-      //Clever OSC stuff goes here.
-      //UpdateLight(Light1,Red,Green,Blue,Shutter,Strobe);
-      UpdateLight(Light1,255,255,255,255,0);
-      UpdateLight(Light2,255,255,255,255,0);
-      UpdateLight(Light3,255,255,255,255,0);
-      UpdateLight(Light4,255,255,255,255,0);
-    }
+    //Manipulate lights here.
+    //UpdateLight(LightNum,Red,Green,Blue,Shutter,Strobe);
   }
 }
 
@@ -107,11 +101,13 @@ void KillAll() {
 }
 
 void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
-  dmxOutput.set(startAddr, r);
-  dmxOutput.set(startAddr+1, g);
-  dmxOutput.set(startAddr+2, b);
-  dmxOutput.set(startAddr+3, shutter);
-  dmxOutput.set(startAddr+4, strobe);
+  if (!KILLED) {
+    dmxOutput.set(startAddr, r);
+    dmxOutput.set(startAddr+1, g);
+    dmxOutput.set(startAddr+2, b);
+    dmxOutput.set(startAddr+3, shutter);
+    dmxOutput.set(startAddr+4, strobe);
+  }
 }
 
 void oscEvent(OscMessage theOscMessage) {
@@ -119,3 +115,4 @@ void oscEvent(OscMessage theOscMessage) {
   print(" addrpattern: "+theOscMessage.addrPattern());
   println(" typetag: "+theOscMessage.typetag());
 }
+
