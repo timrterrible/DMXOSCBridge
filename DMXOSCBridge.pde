@@ -27,81 +27,77 @@ import processing.serial.*;
  * Q - Quit. Use this to avoid hanging the serial port.
  * K - Kill ALl. Forces all DMX channels to zero. 
  *
+ *
+ * == Ge things done == 
+ *
+ * UpdatedmxLight(dmxLightNum, Red, Green, Blue, Shutter, Strobe);
+ *
  */
 
-DmxP512 dmxOutput;
-boolean KILLED=false;
-OscP5 oscP5;
-NetAddress myRemoteLocation;                            
-String serverIP = "127.0.0.1";
+boolean DEBUG=false;  //Disables DMX Interface.
 
-int Light1=01; //Start address of fixture.
-int Light2=06; //Start address of fixture. 
-int Light3=11; //Start address of fixture. 
-int Light4=16; //Start address of fixture.
+String dmxPort="COM4";  //Change this to match the virtual COM port created by the DMX interface.
+int dmxBaudrate=115000;  //Change this to match the baud rate of the DMX interface. 
+int dmxUniverse=32;  //Number of channels in DMX universe. 
+boolean dmxKilled=false;  //DMX blackout toggle.
+int dmxLight1=01;  //Starting address of fixture.
+int dmxLight2=06;  //Starting address of fixture.
+int dmxLight3=11;  //Starting address of fixture.
+int dmxLight4=16;  //Starting address of fixture.
+DmxP512 dmxOutput;  //DMX output object.
 
-int OSCPORT=12006; //OSC listening Port - Next port in sequence from maingame/assets/config.xml is 12006
-int universeSize=32; //Our universe is only 32 channels. 
-boolean DEBUG=false; //Disables DMX Interface
-String DMXPRO_PORT="COM4"; //Change this. 
-int DMXPRO_BAUDRATE=115000; //Do not change this. 
+OscP5 oscListener;  //OSC listener object.
+int oscPort=12006;  //OSC listening Port - Next port in sequence from maingame/assets/config.xml is 12006
 
 void setup() { 
-  myRemoteLocation = new NetAddress(serverIP, 12000);
-  oscP5 = new OscP5(this,OSCPORT);
+  oscListener = new OscP5(this, oscPort);
   size(128, 128, JAVA2D);
 
   if (!DEBUG) {
-    dmxOutput=new DmxP512(this, universeSize, false);
-    dmxOutput.setupDmxPro(DMXPRO_PORT, DMXPRO_BAUDRATE);
+    dmxOutput=new DmxP512(this, dmxUniverse, false);
+    dmxOutput.setupDmxPro(dmxPort, dmxBaudrate);
   }
 }
 
 void draw() {
-  if (!KILLED)
-  {
-    fill(0, 255, 0); //Green
+  if (!dmxKilled) {
+    fill(0, 255, 0); //Red
   } 
   else
-  {
-    fill(255, 0, 0); //Red
-  }
+    fill(255, 0, 0); //Green
 
-  rect(4, 4, 120, 120, 8, 8, 8, 8); //Giant traffic light showing DMX output state.  
-
-  if (!DEBUG) {
-    //Manipulate lights here.
-    //UpdateLight(LightNum,Red,Green,Blue,Shutter,Strobe);
-  }
+  rect(4, 4, 120, 120, 8, 8, 8, 8); //Giant traffic light showing DMX output state.
 }
 
 void keyPressed() {
-  if (key == 'q' || key == 'Q') {
+  if (key == 'q' || key == 'Q') { //Quit
     exit();
   } 
-  else if (key == 'k' || key == 'K') {
-    if (KILLED)
+  else if (key == 'k' || key == 'K') { //Kill DMX
+    if (dmxKilled)
     {
-      KILLED=false;
+      dmxKilled=false;
     } 
-    else if (!KILLED) {
-      KILLED=true;
+    else if (!dmxKilled) {
+      dmxKilled=true;
       KillAll();
     }
   }
 }
 
 void KillAll() { 
-  int i=0;
-  while (i <= universeSize)
-  {
-    dmxOutput.set(i, 0);
-    ++i;
+  if (!DEBUG) {
+    int i=0;
+    while (i <= dmxUniverse)
+    {
+      dmxOutput.set(i, 0);
+      ++i;
+    }
   }
 }
 
 void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
-  if (!KILLED) {
+  if (!DEBUG && !dmxKilled) {
     dmxOutput.set(startAddr, r);
     dmxOutput.set(startAddr+1, g);
     dmxOutput.set(startAddr+2, b);
