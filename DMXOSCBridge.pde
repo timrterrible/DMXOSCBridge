@@ -34,7 +34,7 @@ import processing.serial.*;
  *
  */
 
-boolean DEBUG=false;  //Disables DMX Interface.
+boolean DEBUG=true;  //Disables DMX Interface, writes all OSC messages to OSC.log
 
 String dmxPort="COM4";  //Change this to match the virtual COM port created by the DMX interface.
 int dmxBaudrate=115000;  //Change this to match the baud rate of the DMX interface. 
@@ -45,6 +45,7 @@ int dmxLight2=06;  //Starting address of fixture.
 int dmxLight3=11;  //Starting address of fixture.
 int dmxLight4=16;  //Starting address of fixture.
 DmxP512 dmxOutput;  //DMX output object.
+PrintWriter debuglog; //Debug logging object 
 
 OscP5 oscListener;  //OSC listener object.
 int oscPort=12006;  //OSC listening Port - Next port in sequence from maingame/assets/config.xml is 12006
@@ -56,6 +57,10 @@ void setup() {
   if (!DEBUG) {
     dmxOutput=new DmxP512(this, dmxUniverse, false);
     dmxOutput.setupDmxPro(dmxPort, dmxBaudrate);
+  } 
+  else if (DEBUG) {  
+    debuglog = createWriter("debug.log");
+    debuglog.println("Started debug log");
   }
 }
 
@@ -67,10 +72,17 @@ void draw() {
     fill(255, 0, 0); //Green
 
   rect(4, 4, 120, 120, 8, 8, 8, 8); //Giant traffic light showing DMX output state.
+  
+  if (DEBUG)
+    debuglog.flush();
 }
 
 void keyPressed() {
   if (key == 'q' || key == 'Q') { //Quit
+    if (DEBUG) {
+      debuglog.flush();
+      debuglog.close();
+    }
     exit();
   } 
   else if (key == 'k' || key == 'K') { //Kill DMX
@@ -97,6 +109,21 @@ void KillAll() {
 }
 
 void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
+  if (DEBUG) {
+    debuglog.print("DMX: StartAddr:");
+    debuglog.print(startAddr);
+    debuglog.print(" Red:");
+    debuglog.print(r);
+    debuglog.print(" Green:");
+    debuglog.print(g);
+    debuglog.print(" Blue:");
+    debuglog.print(b);
+    debuglog.print(" Shutter:");
+    debuglog.print(shutter);
+    debuglog.print(" Strobe:");
+    debuglog.println(strobe);
+  }
+
   if (!DEBUG && !dmxKilled) {
     dmxOutput.set(startAddr, r);
     dmxOutput.set(startAddr+1, g);
@@ -107,8 +134,9 @@ void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
 }
 
 void oscEvent(OscMessage theOscMessage) {
-  print("### received an osc message.");
-  print(" addrpattern: "+theOscMessage.addrPattern());
-  println(" typetag: "+theOscMessage.typetag());
+  if (DEBUG) {
+    debuglog.print("OSC: addrpattern: "+theOscMessage.addrPattern());
+    debuglog.println(" typetag: "+theOscMessage.typetag());
+  }
 }
 
