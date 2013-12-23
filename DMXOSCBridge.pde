@@ -28,14 +28,14 @@ import processing.serial.*;
  * K - Kill ALl. Forces all DMX channels to zero. 
  *
  *
- * == Ge things done == 
+ * == Getting things done == 
  *
  * UpdatedmxLight(dmxLightNum, Red, Green, Blue, Shutter, Strobe);
  *
  */
 
-boolean DEBUG=true;  //Disables DMX Interface, writes all OSC messages to OSC.log
-
+boolean DMX=false;  //Enables DMX Interface
+boolean LOG=true; //Logs all DMX and OSC traffic
 String dmxPort="COM4";  //Change this to match the virtual COM port created by the DMX interface.
 int dmxBaudrate=115000;  //Change this to match the baud rate of the DMX interface. 
 int dmxUniverse=32;  //Number of channels in DMX universe. 
@@ -46,7 +46,7 @@ int dmxLight3=11;  //Starting address of fixture.
 int dmxLight4=16;  //Starting address of fixture.
 DmxP512 dmxOutput;  //DMX output object.
 PrintWriter debuglog; //Debug logging object 
-
+char debugLogFile=""  //Debug log filename
 OscP5 oscListener;  //OSC listener object.
 int oscPort=12006;  //OSC listening Port - Next port in sequence from maingame/assets/config.xml is 12006
 
@@ -54,12 +54,13 @@ void setup() {
   oscListener = new OscP5(this, oscPort);
   size(128, 128, JAVA2D);
 
-  if (!DEBUG) {
+  if (DMX) {
     dmxOutput=new DmxP512(this, dmxUniverse, false);
     dmxOutput.setupDmxPro(dmxPort, dmxBaudrate);
   } 
-  else if (DEBUG) {  
-    debuglog = createWriter("debug.log");
+  if (LOG) {
+    //Magic to make debugLogFile timestamped to stop overwrites. Processing, you piece of shit. 
+    debuglog = createWriter(debugLogFile);
     debuglog.println("Started debug log");
   }
 }
@@ -72,14 +73,14 @@ void draw() {
     fill(255, 0, 0); //Green
 
   rect(4, 4, 120, 120, 8, 8, 8, 8); //Giant traffic light showing DMX output state.
-  
-  if (DEBUG)
+
+  if (LOG)
     debuglog.flush();
 }
 
 void keyPressed() {
   if (key == 'q' || key == 'Q') { //Quit
-    if (DEBUG) {
+    if (LOG) {
       debuglog.flush();
       debuglog.close();
     }
@@ -98,7 +99,7 @@ void keyPressed() {
 }
 
 void KillAll() { 
-  if (!DEBUG) {
+  if (DMX) {
     int i=0;
     while (i <= dmxUniverse)
     {
@@ -109,7 +110,7 @@ void KillAll() {
 }
 
 void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
-  if (DEBUG) {
+  if (LOG) {
     debuglog.print("DMX: StartAddr:");
     debuglog.print(startAddr);
     debuglog.print(" Red:");
@@ -124,7 +125,7 @@ void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
     debuglog.println(strobe);
   }
 
-  if (!DEBUG && !dmxKilled) {
+  if (DMX && !dmxKilled) {
     dmxOutput.set(startAddr, r);
     dmxOutput.set(startAddr+1, g);
     dmxOutput.set(startAddr+2, b);
@@ -134,7 +135,7 @@ void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
 }
 
 void oscEvent(OscMessage theOscMessage) {
-  if (DEBUG) {
+  if (LOG) {
     debuglog.print("OSC: addrpattern: "+theOscMessage.addrPattern());
     debuglog.println(" typetag: "+theOscMessage.typetag());
   }
