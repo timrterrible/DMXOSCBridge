@@ -46,7 +46,7 @@ int dmxLight3=11;  //Starting address of fixture.
 int dmxLight4=16;  //Starting address of fixture.
 DmxP512 dmxOutput;  //DMX output object.
 PrintWriter debuglog; //Debug logging object 
-char debugLogFile=""  //Debug log filename
+String debugLogFile="debug.log";  //Debug log filename
 OscP5 oscListener;  //OSC listener object.
 int oscPort=12006;  //OSC listening Port - Next port in sequence from maingame/assets/config.xml is 12006
 
@@ -59,7 +59,9 @@ void setup() {
     dmxOutput.setupDmxPro(dmxPort, dmxBaudrate);
   } 
   if (LOG) {
-    //Magic to make debugLogFile timestamped to stop overwrites. Processing, you piece of shit. 
+    //Magic to make debugLogFile timestamped to stop overwrites. Processing, you piece of shit.
+    //debuglog = logs/day.month.year-hh-mm-ss.log
+
     debuglog = createWriter(debugLogFile);
     debuglog.println("Started debug log");
   }
@@ -81,6 +83,7 @@ void draw() {
 void keyPressed() {
   if (key == 'q' || key == 'Q') { //Quit
     if (LOG) {
+      debuglog.println("Stopping debug log");
       debuglog.flush();
       debuglog.close();
     }
@@ -106,6 +109,7 @@ void KillAll() {
       dmxOutput.set(i, 0);
       ++i;
     }
+    if (LOG) debuglog.println("DMX: Killed");
   }
 }
 
