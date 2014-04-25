@@ -1,3 +1,5 @@
+import java.util.Map;
+
 import oscP5.*;
 import netP5.*;
 
@@ -30,7 +32,7 @@ import processing.serial.*;
  *
  * == Getting things done == 
  *
- * UpdatedmxLight(dmxLightNum, Red, Green, Blue, Shutter, Strobe);
+ * UpdateLight(dmxLightNum, Red, Green, Blue, Shutter, Strobe);
  *
  */
 
@@ -70,15 +72,17 @@ void setup() {
     debuglog = createWriter(debugLogFile);
     debuglog.println("Log: Started debug log");
   }
+
+  setupSequences();
 }
 
 void draw() {
   if (!dmxKilled) {
     fill(0, 255, 0); //Red
   } 
-  else
+  else { 
     fill(255, 0, 0); //Green
-
+  }
   rect(4, 4, 120, 120, 8, 8, 8, 8); //Giant traffic light showing DMX output state.
 
   if (LOG)
@@ -98,12 +102,12 @@ void keyPressed() {
     if (dmxKilled)
     {
       dmxKilled=false;
-      debuglog.println("DMX: Unkilled");
+      if (LOG) debuglog.println("DMX: Resurrected");
     } 
     else if (!dmxKilled) {
       dmxKilled=true;
       KillAll();
-      debuglog.println("DMX: Killed");
+      if (LOG) debuglog.println("DMX: Killed");
     }
   }
 }
@@ -116,7 +120,6 @@ void KillAll() {
       dmxOutput.set(i, 0);
       ++i;
     }
-    if (LOG) debuglog.println("DMX: Killed");
   }
 }
 
@@ -145,21 +148,45 @@ void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
   }
 }
 
+void playSequence (String sequence, boolean background, int duration) {
+  if (LOG) debuglog.println("Seq: Playing "+sequence+"for "+duration+"ms background:"+background);
+
+  // sequence is the name of the sequence eg: "test" for test.seq
+  // boolean specifies if this is a constant background sequence or an overlay
+  // if an overlay this is how long in ms that the overlay is display for, ignored in case of background seqs.
+
+  //TODO: Lookup sequence in hashmap, and step through it.
+}
+
+Table loadSequence (String sequence) {
+  String filename = "sequences/"+sequence+".seq";
+  if (LOG) debuglog.println("Seq: Loading "+sequence+" into hashmap from "+filename);
+  Table loaded = loadTable(filename, "header,csv");
+  return loaded;
+}
+
+void setupSequences() {
+  if (LOG) debuglog.println("Seq: Creating hashmap");
+  HashMap<String, Table> mapSequences = new HashMap<String, Table>();
+
+  //TODO: Walk through /sequences and load all .seq files into a hashmap
+
+  //Just load test sequence for now to prove the hasmap works.
+  String load = "test";
+  mapSequences.put(load, loadSequence(load));
+}
+
 void oscEvent(OscMessage theOscMessage) {
   if (LOG) {
     debuglog.print("OSC: addrpattern: "+theOscMessage.addrPattern());
     debuglog.println(" typetag: "+theOscMessage.typetag());
   }
-  if (theOscMessage.addrPattern() == "/ship/youaredead") { 
-    UpdatedmxLight(dmxLight1, 255, 255, 255, 64, 0);
-    UpdatedmxLight(dmxLight2, 255, 255, 255, 64, 0);
-    UpdatedmxLight(dmxLight3, 255, 255, 255, 64, 0);
-    UpdatedmxLight(dmxLight4, 255, 255, 255, 64, 0);
+
+  if (theOscMessage.addrPattern() == "/ship/youaredead") {
+    playSequence("death", true, 0);
   } 
-  else if (theOscMessage.addrPattern() == "/ship/reset") {
-    UpdatedmxLight(dmxLight1, 0, 0, 0, 0, 0);
-    UpdatedmxLight(dmxLight2, 0, 0, 0, 0, 0);
-    UpdatedmxLight(dmxLight3, 0, 0, 0, 0, 0);
-    UpdatedmxLight(dmxLight4, 0, 0, 0, 0, 0);  }
+  else if (theOscMessage.addrPattern() == "/ship/damage") {
+    playSequence("damage", false, 10);
+  }
 }
 
