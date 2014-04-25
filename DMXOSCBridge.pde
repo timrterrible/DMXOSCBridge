@@ -150,5 +150,16 @@ void oscEvent(OscMessage theOscMessage) {
     debuglog.print("OSC: addrpattern: "+theOscMessage.addrPattern());
     debuglog.println(" typetag: "+theOscMessage.typetag());
   }
+  if (theOscMessage.addrPattern() == "/ship/youaredead") { 
+    UpdatedmxLight(dmxLight1, 255, 255, 255, 64, 0);
+    UpdatedmxLight(dmxLight2, 255, 255, 255, 64, 0);
+    UpdatedmxLight(dmxLight3, 255, 255, 255, 64, 0);
+    UpdatedmxLight(dmxLight4, 255, 255, 255, 64, 0);
+  } 
+  else if (theOscMessage.addrPattern() == "/ship/reset") {
+    UpdatedmxLight(dmxLight1, 0, 0, 0, 0, 0);
+    UpdatedmxLight(dmxLight2, 0, 0, 0, 0, 0);
+    UpdatedmxLight(dmxLight3, 0, 0, 0, 0, 0);
+    UpdatedmxLight(dmxLight4, 0, 0, 0, 0, 0);  }
 }
 
