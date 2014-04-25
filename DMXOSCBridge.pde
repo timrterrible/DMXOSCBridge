@@ -59,11 +59,16 @@ void setup() {
     dmxOutput.setupDmxPro(dmxPort, dmxBaudrate);
   } 
   if (LOG) {
-    //Magic to make debugLogFile timestamped to stop overwrites. Processing, you piece of shit.
-    //debuglog = logs/day.month.year-hh-mm-ss.log
+    int day = day();
+    int mon = month();
+    int yr = year();
+    int hr = hour();
+    int min = minute();
+    int sec = second();
 
+    debugLogFile="logs/"+day+"-"+mon+"-"+yr+"-"+hr+"."+min+"."+sec+".log";
     debuglog = createWriter(debugLogFile);
-    debuglog.println("Started debug log");
+    debuglog.println("Log: Started debug log");
   }
 }
 
@@ -83,7 +88,7 @@ void draw() {
 void keyPressed() {
   if (key == 'q' || key == 'Q') { //Quit
     if (LOG) {
-      debuglog.println("Stopping debug log");
+      debuglog.println("Log: Exiting, stopping debug log");
       debuglog.flush();
       debuglog.close();
     }
@@ -93,10 +98,12 @@ void keyPressed() {
     if (dmxKilled)
     {
       dmxKilled=false;
+      debuglog.println("DMX: Unkilled");
     } 
     else if (!dmxKilled) {
       dmxKilled=true;
       KillAll();
+      debuglog.println("DMX: Killed");
     }
   }
 }
