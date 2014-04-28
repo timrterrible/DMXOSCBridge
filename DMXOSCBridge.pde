@@ -29,24 +29,34 @@ import processing.serial.*;
  *
  */
 
-boolean DMX=false;  //Enables DMX Interface
-boolean LOG=true; //Logs all DMX and OSC traffic
-String dmxPort="COM4";  //Change this to match the virtual COM port created by the DMX interface.
-int dmxBaudrate=115000;  //Change this to match the baud rate of the DMX interface. 
+//Logging
+boolean LOG=true; //Toggle debug logging.
+
+//DMX
+boolean DMX=false;  //Toggle DMX Interface.
+String dmxPort="COM4";  //COM port for DMX interface. 
+int dmxBaudrate=115000;  //Baud rate of DMX interface.
 int dmxUniverse=32;  //Number of channels in DMX universe. 
-boolean dmxKilled=false;  //DMX blackout toggle.
-int dmxLight1=01;  //Starting address of fixture.
-int dmxLight2=06;  //Starting address of fixture.
-int dmxLight3=11;  //Starting address of fixture.
-int dmxLight4=16;  //Starting address of fixture.
-DmxP512 dmxOutput;  //DMX output object.
-PrintWriter debuglog; //Debug logging object 
-String debugLogFile;  //Debug log filename
-OscP5 oscListener;  //OSC listener object.
-int oscPort=12006;  //OSC listening Port - Next port in sequence from maingame/assets/config.xml is 12006
-String seqBackground; //Current background sequence.
-String seqOverlay; //Current overlay sequence. 
-int seqDuration; //Duraton of last overlay.
+int dmxLight1=01;  //Starting address of 5ch fixture.
+int dmxLight2=06;  //Starting address of 5ch fixture.
+int dmxLight3=11;  //Starting address of 5ch fixture.
+int dmxLight4=16;  //Starting address of 5ch fixture.
+
+//OSC
+int oscPort=12006;  //OSC listening Port
+
+/* 
+ ********** Don't change anything below this line. **********
+ */
+
+boolean dmxKilled=false;
+DmxP512 dmxOutput;
+PrintWriter debuglog;
+String debugLogFile;
+OscP5 oscListener;
+String seqBackground;
+String seqOverlay;
+int seqDuration;
 
 void setup() { 
   oscListener = new OscP5(this, oscPort);
@@ -127,16 +137,18 @@ void KillAll() {
   }
 }
 
+/*
 void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
-  if (LOG) debuglog.println("DMX: StartAddr: "+startAddr+" Red:"+r+" Green:"+g+" Blue:"+b+" Shutter:"+shutter+" Strobe:"+strobe);
-  if (DMX && !dmxKilled) {
-    dmxOutput.set(startAddr, r);
-    dmxOutput.set(startAddr+1, g);
-    dmxOutput.set(startAddr+2, b);
-    dmxOutput.set(startAddr+3, shutter);
-    dmxOutput.set(startAddr+4, strobe);
-  }
-}
+ if (LOG) debuglog.println("DMX: StartAddr: "+startAddr+" Red:"+r+" Green:"+g+" Blue:"+b+" Shutter:"+shutter+" Strobe:"+strobe);
+ if (DMX && !dmxKilled) {
+ dmxOutput.set(startAddr, r);
+ dmxOutput.set(startAddr+1, g);
+ dmxOutput.set(startAddr+2, b);
+ dmxOutput.set(startAddr+3, shutter);
+ dmxOutput.set(startAddr+4, strobe);
+ }
+ }
+ */
 
 void playSequence (String sequence, boolean background, int duration) {
   if (background) {
@@ -162,7 +174,7 @@ File[] listFiles(String dir) {
 }
 
 void setupSequences() {
-  String seqPath = sketchPath("")+"sequences/"; //Path to sequences directory. May need adjusting on non-UNIX systems.
+  String seqPath = sketchPath("")+"sequences/";
   HashMap<String, Table> mapSequences = new HashMap<String, Table>();
   File[] sequences = listFiles(seqPath);
   if (LOG) debuglog.println("Seq: "+sequences.length+" sequences found.");
@@ -200,3 +212,4 @@ void oscEvent(OscMessage theOscMessage) {
     playSequence("damage", false, 10);
   }
 } 
+
