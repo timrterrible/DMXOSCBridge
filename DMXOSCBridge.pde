@@ -1,13 +1,11 @@
 import java.util.Map;
-
 import oscP5.*;
 import netP5.*;
-
 import dmxP512.*;
 import processing.serial.*;
 
 /*
-* OSX to DMX Bridge for the LHS Bikeshed / Halloween Open Day 01/11/2013
+* OSC to DMX Bridge for the LHS Bikeshed
  * 
  * DMX Library: http://motscousus.com/stuff/2011-01_dmxP512/
  * OSC Library: http://www.sojamo.de/libraries/oscP5/
@@ -29,11 +27,6 @@ import processing.serial.*;
  * Q - Quit. Use this to avoid hanging the serial port.
  * K - Kill ALl. Forces all DMX channels to zero. 
  *
- *
- * == Getting things done == 
- *
- * UpdateLight(dmxLightNum, Red, Green, Blue, Shutter, Strobe);
- *
  */
 
 boolean DMX=false;  //Enables DMX Interface
@@ -48,9 +41,12 @@ int dmxLight3=11;  //Starting address of fixture.
 int dmxLight4=16;  //Starting address of fixture.
 DmxP512 dmxOutput;  //DMX output object.
 PrintWriter debuglog; //Debug logging object 
-String debugLogFile="debug.log";  //Debug log filename
+String debugLogFile;  //Debug log filename
 OscP5 oscListener;  //OSC listener object.
 int oscPort=12006;  //OSC listening Port - Next port in sequence from maingame/assets/config.xml is 12006
+String seqBackground; //Current background sequence.
+String seqOverlay; //Current overlay sequence. 
+int seqDuration; //Duraton of last overlay.
 
 void setup() { 
   oscListener = new OscP5(this, oscPort);
@@ -72,21 +68,29 @@ void setup() {
     debuglog = createWriter(debugLogFile);
     debuglog.println("Log: Started debug log");
   }
-
   setupSequences();
 }
 
 void draw() {
   if (!dmxKilled) {
-    fill(0, 255, 0); //Red
+    fill(0, 255, 0);
   } 
   else { 
-    fill(255, 0, 0); //Green
+    fill(255, 0, 0);
   }
-  rect(4, 4, 120, 120, 8, 8, 8, 8); //Giant traffic light showing DMX output state.
+  rect(4, 4, 120, 120, 8, 8, 8, 8);
 
   if (LOG)
     debuglog.flush();
+
+  /*
+      ===== TODO =====
+   ) Every 100ms
+   ) Up to two seqs loaded at any time, with current active frame recorded.
+   ) If we haven't reached the end of the overlay it still has priority.    
+   ) If not, restart background seq
+   
+   */
 }
 
 void keyPressed() {
@@ -98,7 +102,7 @@ void keyPressed() {
     }
     exit();
   } 
-  else if (key == 'k' || key == 'K') { //Kill DMX
+  else if (key == 'k' || key == 'K') {
     if (dmxKilled)
     {
       dmxKilled=false;
@@ -151,30 +155,54 @@ void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
 void playSequence (String sequence, boolean background, int duration) {
   if (LOG) debuglog.println("Seq: Playing "+sequence+"for "+duration+"ms background:"+background);
 
-  // sequence is the name of the sequence eg: "test" for test.seq
-  // boolean specifies if this is a constant background sequence or an overlay
-  // if an overlay this is how long in ms that the overlay is display for, ignored in case of background seqs.
-
-  //TODO: Lookup sequence in hashmap, and step through it.
+  if (background) {
+    //Background sequence change.
+    seqBackground = sequence;
+  }
+  else {
+    //Overlay change.
+    seqOverlay = sequence;
+    seqDuration = duration;
+  }
 }
 
-Table loadSequence (String sequence) {
-  String filename = "sequences/"+sequence+".seq";
-  if (LOG) debuglog.println("Seq: Loading "+sequence+" into hashmap from "+filename);
-  Table loaded = loadTable(filename, "header,csv");
-  return loaded;
+File[] listFiles(String dir) {
+  File file = new File(dir);
+  if (file.isDirectory()) {
+    File[] files = file.listFiles(seqFilter);
+    return files;
+  } 
+  else {
+    return null;
+  }
 }
 
 void setupSequences() {
-  if (LOG) debuglog.println("Seq: Creating hashmap");
+  String seqPath = sketchPath("")+"sequences/"; //Path to sequences directory. May need adjusting on non-UNIX systems.
+  if (LOG) debuglog.println("Seq: Creating hashmap()");
   HashMap<String, Table> mapSequences = new HashMap<String, Table>();
+  File[] sequences = listFiles(seqPath);
+  if (LOG) debuglog.println("Seq: "+sequences.length+" sequences found.");
 
-  //TODO: Walk through /sequences and load all .seq files into a hashmap
-
-  //Just load test sequence for now to prove the hasmap works.
-  String load = "test";
-  mapSequences.put(load, loadSequence(load));
+  int i = 0;
+  while (i < sequences.length)
+  {
+    if (!sequences[i].isDirectory()) {
+      String name = split(sequences[i].getName(), ".")[0];
+      if (LOG) debuglog.println("Seq: Loading "+name+" from "+sequences[i].getName());
+      Table table = loadTable(sequences[i].getAbsolutePath(), "header,csv");
+      mapSequences.put(name, table);
+      ++i;
+    }
+  }
+  if (LOG) debuglog.println("Seq: Sequences loaded");
 }
+
+java.io.FilenameFilter seqFilter = new java.io.FilenameFilter() {
+  boolean accept(File dir, String name) {
+    return name.toLowerCase().endsWith(".seq");
+  }
+};
 
 void oscEvent(OscMessage theOscMessage) {
   if (LOG) {
