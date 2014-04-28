@@ -179,7 +179,6 @@ File[] listFiles(String dir) {
 
 void setupSequences() {
   String seqPath = sketchPath("")+"sequences/"; //Path to sequences directory. May need adjusting on non-UNIX systems.
-  if (LOG) debuglog.println("Seq: Creating hashmap()");
   HashMap<String, Table> mapSequences = new HashMap<String, Table>();
   File[] sequences = listFiles(seqPath);
   if (LOG) debuglog.println("Seq: "+sequences.length+" sequences found.");
