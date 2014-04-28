@@ -128,21 +128,7 @@ void KillAll() {
 }
 
 void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
-  if (LOG) {
-    debuglog.print("DMX: StartAddr:");
-    debuglog.print(startAddr);
-    debuglog.print(" Red:");
-    debuglog.print(r);
-    debuglog.print(" Green:");
-    debuglog.print(g);
-    debuglog.print(" Blue:");
-    debuglog.print(b);
-    debuglog.print(" Shutter:");
-    debuglog.print(shutter);
-    debuglog.print(" Strobe:");
-    debuglog.println(strobe);
-  }
-
+  if (LOG) debuglog.println("DMX: StartAddr: "+startAddr+" Red:"+r+" Green:"+g+" Blue:"+b+" Shutter:"+shutter+" Strobe:"+strobe);
   if (DMX && !dmxKilled) {
     dmxOutput.set(startAddr, r);
     dmxOutput.set(startAddr+1, g);
@@ -153,14 +139,12 @@ void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
 }
 
 void playSequence (String sequence, boolean background, int duration) {
-  if (LOG) debuglog.println("Seq: Playing "+sequence+"for "+duration+"ms background:"+background);
-
   if (background) {
-    //Background sequence change.
+    if (LOG) debuglog.println("Seq: Playing overlay "+sequence+" for "+duration+"ms");
     seqBackground = sequence;
   }
   else {
-    //Overlay change.
+    if (LOG) debuglog.println("Seq: Playing background "+sequence);
     seqOverlay = sequence;
     seqDuration = duration;
   }
@@ -189,17 +173,17 @@ void setupSequences() {
     if (!sequences[i].isDirectory()) {
       String name = split(sequences[i].getName(), ".")[0];
       if (LOG) debuglog.println("Seq: Loading "+name+" from "+sequences[i].getName());
-      Table table = loadTable(sequences[i].getAbsolutePath(), "header,csv");
+      Table table = loadTable(sequences[i].getAbsolutePath(), "header, csv");
       mapSequences.put(name, table);
       ++i;
     }
   }
-  if (LOG) debuglog.println("Seq: Sequences loaded");
+  if (LOG) debuglog.println("Seq: "+sequences.length+" Sequences loaded");
 }
 
 java.io.FilenameFilter seqFilter = new java.io.FilenameFilter() {
   boolean accept(File dir, String name) {
-    return name.toLowerCase().endsWith(".seq");
+    return name.endsWith(".seq");
   }
 };
 
@@ -215,5 +199,4 @@ void oscEvent(OscMessage theOscMessage) {
   else if (theOscMessage.addrPattern() == "/ship/damage") {
     playSequence("damage", false, 10);
   }
-}
-
+} 
