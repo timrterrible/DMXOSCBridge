@@ -36,7 +36,7 @@ boolean LOG=true; //Toggle debug logging.
 boolean DMX=false;  //Toggle DMX Interface.
 String dmxPort="COM4";  //COM port for DMX interface. 
 int dmxBaudrate=115000;  //Baud rate of DMX interface.
-int dmxUniverse=32;  //Number of channels in DMX universe. 
+int dmxUniverse=20;  //Number of channels in DMX universe. 
 int dmxLight1=01;  //Starting address of 5ch fixture.
 int dmxLight2=06;  //Starting address of 5ch fixture.
 int dmxLight3=11;  //Starting address of 5ch fixture.
@@ -57,6 +57,7 @@ OscP5 oscListener;
 String seqBackground;
 String seqOverlay;
 int seqDuration;
+HashMap<String, Table> mapSequences = new HashMap<String, Table>();
 
 void setup() { 
   oscListener = new OscP5(this, oscPort);
@@ -123,6 +124,14 @@ void keyPressed() {
       KillAll();
       if (LOG) debuglog.println("DMX: Killed");
     }
+  }  
+  else if (key == 't' || key == 'T') {
+    //Death has nothing in.
+    testSequence("death");
+    //Damage has too many channels.
+    testSequence("damage");
+    //Missilehit has loads of steps.
+    testSequence("missilehit");
   }
 }
 
@@ -172,10 +181,27 @@ File[] listFiles(String dir) {
     return null;
   }
 }
+void testSequence (String sequenceName) {
+  Table sequenceTable = mapSequences.get(sequenceName);
+  int sequenceOverflow;
+  int sequenceChannels;
+  int sequenceSteps;
+
+  sequenceChannels = sequenceTable.getColumnCount();
+  sequenceSteps = sequenceTable.getRowCount(); 
+  print("Sequence "+sequenceName+" has "+sequenceSteps+" steps covering "+sequenceChannels+" channels. ");
+
+  if (sequenceChannels > dmxUniverse ) {
+    sequenceOverflow = sequenceChannels-dmxUniverse;
+    println("Sequence has "+sequenceOverflow+" too many channels, and will be truncated to "+dmxUniverse);
+  } 
+  else {
+    println("");
+  }
+}
 
 void setupSequences() {
   String seqPath = sketchPath("")+"sequences/";
-  HashMap<String, Table> mapSequences = new HashMap<String, Table>();
   File[] sequences = listFiles(seqPath);
   if (LOG) debuglog.println("Seq: "+sequences.length+" sequences found.");
 
