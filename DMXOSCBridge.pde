@@ -29,7 +29,6 @@ import processing.serial.*;
  *
  */
 
-<<<<<<< HEAD
 boolean DMX=false;  //Enables DMX Interface
 boolean LOG=true; //Logs all DMX and OSC traffic
 String dmxPort="COM4";  //Change this to match the virtual COM port created by the DMX interface.
@@ -53,37 +52,8 @@ int currentTime; //Current time.
 int diffTime; //Diff between frames in ms
 int stepTime = 100; //Delay between steps in ms
 int driftTime;  //Drift form perfect step in ms.
-=======
-//Logging
-boolean LOG=true; //Toggle debug logging.
-
-//DMX
-boolean DMX=false;  //Toggle DMX Interface.
-String dmxPort="COM4";  //COM port for DMX interface. 
-int dmxBaudrate=115000;  //Baud rate of DMX interface.
-int dmxUniverse=20;  //Number of channels in DMX universe. 
-int dmxLight1=01;  //Starting address of 5ch fixture.
-int dmxLight2=06;  //Starting address of 5ch fixture.
-int dmxLight3=11;  //Starting address of 5ch fixture.
-int dmxLight4=16;  //Starting address of 5ch fixture.
-
-//OSC
-int oscPort=12006;  //OSC listening Port
-
-/* 
- ********** Don't change anything below this line. **********
- */
-
-boolean dmxKilled=false;
-DmxP512 dmxOutput;
-PrintWriter debuglog;
-String debugLogFile;
-OscP5 oscListener;
-String seqBackground;
-String seqOverlay;
-int seqDuration;
 HashMap<String, Table> mapSequences = new HashMap<String, Table>();
->>>>>>> ab1401ffdef6114f69d46ed9af50c9e06d97ab8e
+
 
 void setup() { 
   oscListener = new OscP5(this, oscPort);
