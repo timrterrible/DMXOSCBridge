@@ -29,6 +29,7 @@ import processing.serial.*;
  *
  */
 
+<<<<<<< HEAD
 boolean DMX=false;  //Enables DMX Interface
 boolean LOG=true; //Logs all DMX and OSC traffic
 String dmxPort="COM4";  //Change this to match the virtual COM port created by the DMX interface.
@@ -52,6 +53,37 @@ int currentTime; //Current time.
 int diffTime; //Diff between frames in ms
 int stepTime = 100; //Delay between steps in ms
 int driftTime;  //Drift form perfect step in ms.
+=======
+//Logging
+boolean LOG=true; //Toggle debug logging.
+
+//DMX
+boolean DMX=false;  //Toggle DMX Interface.
+String dmxPort="COM4";  //COM port for DMX interface. 
+int dmxBaudrate=115000;  //Baud rate of DMX interface.
+int dmxUniverse=20;  //Number of channels in DMX universe. 
+int dmxLight1=01;  //Starting address of 5ch fixture.
+int dmxLight2=06;  //Starting address of 5ch fixture.
+int dmxLight3=11;  //Starting address of 5ch fixture.
+int dmxLight4=16;  //Starting address of 5ch fixture.
+
+//OSC
+int oscPort=12006;  //OSC listening Port
+
+/* 
+ ********** Don't change anything below this line. **********
+ */
+
+boolean dmxKilled=false;
+DmxP512 dmxOutput;
+PrintWriter debuglog;
+String debugLogFile;
+OscP5 oscListener;
+String seqBackground;
+String seqOverlay;
+int seqDuration;
+HashMap<String, Table> mapSequences = new HashMap<String, Table>();
+>>>>>>> ab1401ffdef6114f69d46ed9af50c9e06d97ab8e
 
 void setup() { 
   oscListener = new OscP5(this, oscPort);
@@ -129,6 +161,14 @@ void keyPressed() {
       KillAll();
       if (LOG) debuglog.println("DMX: Killed");
     }
+  }  
+  else if (key == 't' || key == 'T') {
+    //Death has nothing in.
+    testSequence("death");
+    //Damage has too many channels.
+    testSequence("damage");
+    //Missilehit has loads of steps.
+    testSequence("missilehit");
   }
 }
 
@@ -143,16 +183,18 @@ void KillAll() {
   }
 }
 
+/*
 void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
-  if (LOG) debuglog.println("DMX: StartAddr: "+startAddr+" Red:"+r+" Green:"+g+" Blue:"+b+" Shutter:"+shutter+" Strobe:"+strobe);
-  if (DMX && !dmxKilled) {
-    dmxOutput.set(startAddr, r);
-    dmxOutput.set(startAddr+1, g);
-    dmxOutput.set(startAddr+2, b);
-    dmxOutput.set(startAddr+3, shutter);
-    dmxOutput.set(startAddr+4, strobe);
-  }
-}
+ if (LOG) debuglog.println("DMX: StartAddr: "+startAddr+" Red:"+r+" Green:"+g+" Blue:"+b+" Shutter:"+shutter+" Strobe:"+strobe);
+ if (DMX && !dmxKilled) {
+ dmxOutput.set(startAddr, r);
+ dmxOutput.set(startAddr+1, g);
+ dmxOutput.set(startAddr+2, b);
+ dmxOutput.set(startAddr+3, shutter);
+ dmxOutput.set(startAddr+4, strobe);
+ }
+ }
+ */
 
 void playSequence (String sequence, boolean background, int duration) {
   if (background) {
@@ -176,10 +218,27 @@ File[] listFiles(String dir) {
     return null;
   }
 }
+void testSequence (String sequenceName) {
+  Table sequenceTable = mapSequences.get(sequenceName);
+  int sequenceOverflow;
+  int sequenceChannels;
+  int sequenceSteps;
+
+  sequenceChannels = sequenceTable.getColumnCount();
+  sequenceSteps = sequenceTable.getRowCount(); 
+  print("Sequence "+sequenceName+" has "+sequenceSteps+" steps covering "+sequenceChannels+" channels. ");
+
+  if (sequenceChannels > dmxUniverse ) {
+    sequenceOverflow = sequenceChannels-dmxUniverse;
+    println("Sequence has "+sequenceOverflow+" too many channels, and will be truncated to "+dmxUniverse);
+  } 
+  else {
+    println("");
+  }
+}
 
 void setupSequences() {
-  String seqPath = sketchPath("")+"sequences/"; //Path to sequences directory. May need adjusting on non-UNIX systems.
-  HashMap<String, Table> mapSequences = new HashMap<String, Table>();
+  String seqPath = sketchPath("")+"sequences/";
   File[] sequences = listFiles(seqPath);
   if (LOG) debuglog.println("Seq: "+sequences.length+" sequences found.");
 
