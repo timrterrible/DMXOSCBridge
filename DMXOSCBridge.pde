@@ -47,6 +47,11 @@ int oscPort=12006;  //OSC listening Port - Next port in sequence from maingame/a
 String seqBackground; //Current background sequence.
 String seqOverlay; //Current overlay sequence. 
 int seqDuration; //Duraton of last overlay.
+int lastTime; //Last frame time.
+int currentTime; //Current time.
+int diffTime; //Diff between frames in ms
+int stepTime = 100; //Delay between steps in ms
+int driftTime;  //Drift form perfect step in ms.
 
 void setup() { 
   oscListener = new OscP5(this, oscPort);
@@ -69,6 +74,7 @@ void setup() {
     debuglog.println("Log: Started debug log");
   }
   setupSequences();
+  lastTime = millis();
 }
 
 void draw() {
@@ -83,14 +89,24 @@ void draw() {
   if (LOG)
     debuglog.flush();
 
-  /*
-      ===== TODO =====
-   ) Every 100ms
-   ) Up to two seqs loaded at any time, with current active frame recorded.
-   ) If we haven't reached the end of the overlay it still has priority.    
-   ) If not, restart background seq
-   
-   */
+  diffTime = millis() - lastTime;
+  driftTime = diffTime - stepTime;
+
+  if (diffTime >= stepTime) {
+    /*
+     ) Check active background seq
+     ) Advance active background seq by one step
+     
+     ) Check active overlay seq3
+     ) Advance active overlay seq by one step
+     
+     ) Work out who has priority
+     ) Run current step   
+     */
+
+    println("Trying to trigger every "+stepTime+"ms with a drift of "+driftTime);
+    lastTime = millis();
+  }
 }
 
 void keyPressed() {
@@ -193,10 +209,11 @@ void oscEvent(OscMessage theOscMessage) {
     debuglog.println(" typetag: "+theOscMessage.typetag());
   }
 
-  if (theOscMessage.addrPattern() == "/ship/youaredead") {
-    playSequence("death", true, 0);
+  if (theOscMessage.addrPattern() == "/ship/poweron") {
+    playSequence("reactoridle", true, 0);
   } 
   else if (theOscMessage.addrPattern() == "/ship/damage") {
     playSequence("damage", false, 10);
   }
 } 
+
