@@ -26,24 +26,32 @@ import processing.serial.*;
  * == Shortcut keys ==
  * Q - Quit. Use this to avoid hanging the serial port.
  * K - Kill ALl. Forces all DMX channels to zero. 
+ * T - Test a few sequences.
  *
  */
 
+// DMX
 boolean DMX=false;  //Enables DMX Interface
 boolean LOG=true; //Logs all DMX and OSC traffic
 String dmxPort="COM4";  //Change this to match the virtual COM port created by the DMX interface.
 int dmxBaudrate=115000;  //Change this to match the baud rate of the DMX interface. 
-int dmxUniverse=32;  //Number of channels in DMX universe. 
+int dmxUniverse=20;  //Number of channels in DMX universe. 
 boolean dmxKilled=false;  //DMX blackout toggle.
 int dmxLight1=01;  //Starting address of fixture.
 int dmxLight2=06;  //Starting address of fixture.
 int dmxLight3=11;  //Starting address of fixture.
 int dmxLight4=16;  //Starting address of fixture.
 DmxP512 dmxOutput;  //DMX output object.
+
+// LOGGING
 PrintWriter debuglog; //Debug logging object 
 String debugLogFile;  //Debug log filename
+
+// OSC
 OscP5 oscListener;  //OSC listener object.
 int oscPort=12006;  //OSC listening Port - Next port in sequence from maingame/assets/config.xml is 12006
+
+//SEQUENCE HANDLING
 String seqBackground; //Current background sequence.
 String seqOverlay; //Current overlay sequence. 
 int seqDuration; //Duraton of last overlay.
@@ -112,7 +120,7 @@ void draw() {
 }
 
 void keyPressed() {
-  if (key == 'q' || key == 'Q') { //Quit
+  if (key == 'q' || key == 'Q') {
     if (LOG) {
       debuglog.println("Log: Exiting, stopping debug log");
       debuglog.flush();
@@ -133,11 +141,8 @@ void keyPressed() {
     }
   }  
   else if (key == 't' || key == 'T') {
-    //Death has nothing in.
     testSequence("death");
-    //Damage has too many channels.
     testSequence("damage");
-    //Missilehit has loads of steps.
     testSequence("missilehit");
   }
 }
