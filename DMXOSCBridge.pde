@@ -24,23 +24,24 @@ import processing.serial.*;
  * PAR4 = 16,17,18,19,20
  *
  * == Shortcut keys ==
- * Q - Quit. Use this to avoid hanging the serial port.
- * K - Kill ALl. Forces all DMX channels to zero. 
- * T - Test a few sequences.
+ * Q - Quit. 
+ * B - Blackout. 
+ * T - Test some loaded sequences.
+ * D - Print DMX universe channel values
  *
  */
 
+//MISC
+boolean LOG=false; //Enables logging.
+boolean DEBUG=false; //Enable debug spam.
+
 // DMX
 boolean DMX=false;  //Enables DMX Interface
-boolean LOG=true; //Logs all DMX and OSC traffic
 String dmxPort="COM4";  //Change this to match the virtual COM port created by the DMX interface.
 int dmxBaudrate=115000;  //Change this to match the baud rate of the DMX interface. 
-int dmxUniverse=20;  //Number of channels in DMX universe. 
-boolean dmxKilled=false;  //DMX blackout toggle.
-int dmxLight1=01;  //Starting address of fixture.
-int dmxLight2=06;  //Starting address of fixture.
-int dmxLight3=11;  //Starting address of fixture.
-int dmxLight4=16;  //Starting address of fixture.
+int dmxUniverseSize=20;  //Number of channels in DMX universe.
+int[] dmxUniverse = new int[dmxUniverseSize]; //DMX Universe.
+boolean dmxBlackout;  //DMX blackout toggle.
 DmxP512 dmxOutput;  //DMX output object.
 
 // LOGGING
@@ -54,7 +55,9 @@ int oscPort=12006;  //OSC listening Port - Next port in sequence from maingame/a
 //SEQUENCE HANDLING
 String seqBackground; //Current background sequence.
 String seqOverlay; //Current overlay sequence. 
-int seqDuration; //Duraton of last overlay.
+int seqBackgroundStep; //Current step in background sequence.
+int seqOverlayStep; //Current step in overlay sequence.
+int seqOverlayActive; //Overlay state.
 int lastTime; //Last frame time.
 int currentTime; //Current time.
 int diffTime; //Diff between frames in ms
@@ -63,14 +66,18 @@ int driftTime;  //Drift form perfect step in ms.
 HashMap<String, Table> mapSequences = new HashMap<String, Table>();
 
 
+//DISPLAY
+PFont font;
+
 void setup() { 
   oscListener = new OscP5(this, oscPort);
-  size(128, 128, JAVA2D);
+  size(320, 240);
+  font = createFont("Eurostile", 64);
 
   if (DMX) {
-    dmxOutput=new DmxP512(this, dmxUniverse, false);
+    dmxOutput=new DmxP512(this, dmxUniverseSize, false);
     dmxOutput.setupDmxPro(dmxPort, dmxBaudrate);
-  } 
+  }
   if (LOG) {
     int day = day();
     int mon = month();
@@ -88,14 +95,6 @@ void setup() {
 }
 
 void draw() {
-  if (!dmxKilled) {
-    fill(0, 255, 0);
-  } 
-  else { 
-    fill(255, 0, 0);
-  }
-  rect(4, 4, 120, 120, 8, 8, 8, 8);
-
   if (LOG)
     debuglog.flush();
 
@@ -103,83 +102,154 @@ void draw() {
   driftTime = diffTime - stepTime;
 
   if (diffTime >= stepTime) {
-    /*
-     ) Check active background seq
-     ) Advance active background seq by one step
-     
-     ) Check active overlay seq3
-     ) Advance active overlay seq by one step
-     
-     ) Work out who has priority
-     ) Run current step   
-     */
 
-    println("Trying to trigger every "+stepTime+"ms with a drift of "+driftTime);
+    if (DEBUG)
+      println("Trying to trigger every " + stepTime + "ms with a drift of " + driftTime);
+
+    if (DMX)
+      outputDMX();
+
     lastTime = millis();
+  }
+  drawInterface();
+}
+
+void drawInterface() {
+
+  color background = color(0, 0, 0);
+  color enabled = color(0, 255, 0);
+  color disabled = color(50, 50, 50);
+  color title = color(255, 255, 255);
+
+  background(background);
+  textAlign(CENTER, CENTER);
+  rectMode(CENTER);
+
+  textFont(font, 24);
+  fill(title);
+  text("DMX Bridge Status", width/2, 15);
+
+  textFont(font, 32);
+  if (dmxBlackout) {
+    fill(255, 0, 0);
+    rect(width/2, 60, 250, 40, 9);
+    fill(background);
+    text("!! BLACKOUT !!", width/2, 60);
+  } else {
+    fill(0, 0, 0);
+    textFont(font, 32);
+    text("!! BLACKOUT !!", width/2, 60);
+  }
+
+  textFont(font, 24);
+
+  if (DMX) {
+    fill(enabled);
+    text("DMX Enabled", width/2, 110);
+  } else {
+    fill(disabled);
+    text("DMX Disabled", width/2, 110);
+  }
+
+  if (DEBUG) {
+    fill(enabled);
+    text("Debug Enabled", width/2, 135);
+  } else {
+    fill(disabled);
+    text("Debug Disabled", width/2, 135);
+  }
+
+  if (LOG) {
+    fill(enabled);
+    text("Logging Enabled", width/2, 160);
+  } else {
+    fill(disabled);
+    text("Logging Disabled", width/2, 160);
   }
 }
 
 void keyPressed() {
-  if (key == 'q' || key == 'Q') {
+  if (key == 'q' || key == 'Q') {  //QUIT
     if (LOG) {
       debuglog.println("Log: Exiting, stopping debug log");
       debuglog.flush();
       debuglog.close();
     }
     exit();
-  } 
-  else if (key == 'k' || key == 'K') {
-    if (dmxKilled)
+  } else if (key == 'b' || key == 'B') {  //BLACKOUT TOGGLE
+    if (dmxBlackout)
     {
-      dmxKilled=false;
-      if (LOG) debuglog.println("DMX: Resurrected");
-    } 
-    else if (!dmxKilled) {
-      dmxKilled=true;
-      KillAll();
-      if (LOG) debuglog.println("DMX: Killed");
+      dmxBlackout=false;
+      if (LOG) debuglog.println("DMX: Blackout OFF");
+    } else if (!dmxBlackout) {
+      dmxBlackout=true;
+      if (LOG) debuglog.println("DMX: Blackout ON");
     }
-  }  
-  else if (key == 't' || key == 'T') {
+  } else if (key == 't' || key == 'T') {  //TEST
     testSequence("death");
     testSequence("damage");
     testSequence("missilehit");
-  }
-}
-
-void KillAll() { 
-  if (DMX) {
+  } else if (key == 'd' || key == 'D') {  //DMX DUMP
+    println("DMX Universe Dump START");
     int i=0;
-    while (i <= dmxUniverse)
+    while (i <= dmxUniverseSize-1)
     {
-      dmxOutput.set(i, 0);
+      print(i+1+"="+dmxUniverse[i]+" ");
+      ++i;
+    }
+    println();
+    println("DMX Universe Dump END");
+  } else if (key == 'f' || key == 'F') {  //ONE SHOT FULLBRIGHT
+    int i=0;
+    while (i <= dmxUniverseSize-1)
+    {
+      dmxUniverse[i] = 255;
       ++i;
     }
   }
 }
 
-/*
-void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
- if (LOG) debuglog.println("DMX: StartAddr: "+startAddr+" Red:"+r+" Green:"+g+" Blue:"+b+" Shutter:"+shutter+" Strobe:"+strobe);
- if (DMX && !dmxKilled) {
- dmxOutput.set(startAddr, r);
- dmxOutput.set(startAddr+1, g);
- dmxOutput.set(startAddr+2, b);
- dmxOutput.set(startAddr+3, shutter);
- dmxOutput.set(startAddr+4, strobe);
- }
- }
- */
+void outputDMX() {
 
-void playSequence (String sequence, boolean background, int duration) {
-  if (background) {
-    if (LOG) debuglog.println("Seq: Playing overlay "+sequence+" for "+duration+"ms");
-    seqBackground = sequence;
+  if (dmxBlackout) {
+    int i=0;
+    while (i <= dmxUniverseSize-1)
+    {
+      dmxUniverse[i] = 0;
+      ++i;
+    }
   }
-  else {
+
+  //) Background sequences loop forever until changed. Continue to animiate even when overlay has priority.
+  //) Overlays play once and override background. 
+
+  //) Find active background seq and length.
+  //) Check current step, are we on the last step? If so;
+  //) Advance active background seq by one step OR loop to start.
+
+  //) Do we have an active overlay? If not, do nothing
+  //) Find active overlay seq and length
+  //) Check current step, are we on the last step?
+  //) Advance active overlay seq by one step. If at end, set overlay as inactive.
+
+  //) Work out who has priority
+  //) Output current step
+
+  //Push universe to DMX interface.
+  dmxOutput.set(0, dmxUniverse);
+  dmxOutput.run();
+}
+
+void setSequence (String sequence, boolean background, int duration) {
+  if (background) {
     if (LOG) debuglog.println("Seq: Playing background "+sequence);
+    seqBackground = sequence;
+    seqBackgroundStep = 0;
+  } else {
+    if (LOG) debuglog.println("Seq: Playing  "+sequence+" for "+duration+"ms");
     seqOverlay = sequence;
-    seqDuration = duration;
+    seqOverlayStep = 0;
+    seqOverlayActive = 1;
   }
 }
 
@@ -188,11 +258,12 @@ File[] listFiles(String dir) {
   if (file.isDirectory()) {
     File[] files = file.listFiles(seqFilter);
     return files;
-  } 
-  else {
+  } else {
     return null;
   }
 }
+
+//Test given sequence name and report.
 void testSequence (String sequenceName) {
   Table sequenceTable = mapSequences.get(sequenceName);
   int sequenceOverflow;
@@ -203,15 +274,15 @@ void testSequence (String sequenceName) {
   sequenceSteps = sequenceTable.getRowCount(); 
   print("Sequence "+sequenceName+" has "+sequenceSteps+" steps covering "+sequenceChannels+" channels. ");
 
-  if (sequenceChannels > dmxUniverse ) {
-    sequenceOverflow = sequenceChannels-dmxUniverse;
-    println("Sequence has "+sequenceOverflow+" too many channels, and will be truncated to "+dmxUniverse);
-  } 
-  else {
+  if (sequenceChannels > dmxUniverseSize ) {
+    sequenceOverflow = sequenceChannels-dmxUniverseSize;
+    println("Sequence has "+sequenceOverflow+" too many channels, and will be truncated to "+dmxUniverseSize);
+  } else {
     println("");
   }
 }
 
+//Load all sequence files from disk.
 void setupSequences() {
   String seqPath = sketchPath("")+"sequences/";
   File[] sequences = listFiles(seqPath);
@@ -244,10 +315,34 @@ void oscEvent(OscMessage theOscMessage) {
   }
 
   if (theOscMessage.addrPattern() == "/ship/poweron") {
-    playSequence("reactoridle", true, 0);
-  } 
-  else if (theOscMessage.addrPattern() == "/ship/damage") {
-    playSequence("damage", false, 10);
+    setSequence("reactoridle", true, 0);
+  } else if (theOscMessage.addrPattern() == "/ship/damage") {
+    setSequence("damage", false, 10);
   }
 } 
 
+// ======================== LEGACY BULLSHIT BELOW. DO NOT USE. ===============================
+
+/*
+
+ void UpdateLight (int startAddr, int r, int g, int b, int shutter, int strobe) {
+ if (LOG) debuglog.println("DMX: StartAddr: "+startAddr+" Red:"+r+" Green:"+g+" Blue:"+b+" Shutter:"+shutter+" Strobe:"+strobe);
+ if (DMX && !dmxBlackout) {
+ dmxOutput.set(startAddr, r);
+ dmxOutput.set(startAddr+1, g);
+ dmxOutput.set(startAddr+2, b);
+ dmxOutput.set(startAddr+3, shutter);
+ dmxOutput.set(startAddr+4, strobe);
+ }
+ }
+ */
+
+/*
+  if (!dmxBlackout) {
+ fill(0, 255, 0);
+ } else { 
+ fill(255, 0, 0);
+ }
+ rect(4, 4, 120, 120, 8, 8, 8, 8);
+ 
+ */
